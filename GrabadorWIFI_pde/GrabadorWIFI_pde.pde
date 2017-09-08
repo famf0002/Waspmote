@@ -9,7 +9,7 @@
 
 //////////Configuración WIFI///////////////////
 //librería WIFI
-#include <WaspWIFI.h>
+#include <WaspWIFI.h> //Librería módulo WIFI
 
 //Configuración conexión WIFI
 #define ESSID "MikroTik"
@@ -32,13 +32,35 @@ unsigned long previous;
 
 ///////////////////////////////////////////////
 
-String recividos,estado;
+/////////////Configuración RFID////////////////
+#include <WaspRFID13.h> //Librería módilo RFID
+//--------------Constantes--------------
+
+//Clave de autentificación del bloque de la tarjeta RFID que vamos a leer o escribir
+//Esta clave es la de por defecto, aunque se puede cambiar
+uint8_t keyAccess[] = {
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+//variable donde se almacenará el UID+Identificador
+String UID;
+
+//variable donde se almacenará el DNI
+char dni[9];
+
+
+///////////////////////////////////////////////
+
+String recividos,estado,accion; //Variables que almacena los datos recividos y los estados
 
 
 void setup()
 {
-  // configuración de WIFI
+  // Configuración conexión WIFI
   wifi_setup();
+
+  // Inicio RFID
+  rfid_setup();
+
 
 }
 
@@ -52,7 +74,7 @@ void loop()
 
   //Conexión con la red WIFI
   if (WIFI.join(ESSID)){
-    
+
     USB.println(F("Conectado con el AP"));
 
     //Conexión con el socket TCP/IP
@@ -68,38 +90,39 @@ void loop()
       while(millis()-previous<TIMEOUT){
 
         //recibo los datos a guardar en la tarjeta
-        if(WIFI.read(NOBLO)>0){
-          //Recogemos datos del servidor
-          for(int j=0; j<33; j++){
-            datos[j] = WIFI.answer[j];
-          }
-        }
-
-        recividos = datos;
-
+        USB.println("--------------------------------------");       
+        recividos = (char *)&reciveDatosWifi()[0];
+        USB.println(F("datos recividos"));
         USB.println((const char*)&recividos[0]);
+        USB.println("--------------------------------------");
+
+
+
         //Se recorta el valor de acción
-        estado = recividos.substring(recividos.indexOf("{\"accion\":\"")+11,recividos.indexOf("\",\"dni\":\""));
-        USB.println((const char*)&estado[0]);
-        USB.println(estado.toInt());
-        
+        int inicio = recividos.indexOf("{\"accion\":\"");
+        print("inicio: ");
+        println(inicio);
+        int fin = recividos.indexOf("\",\"dni\":\"");
+        print("fin: ");
+        println(fin);
+        accion = recividos.substring(inicio+11,fin);
+        USB.println("ESTADO:");
+        USB.println((const char*)&accion[0]);
+        USB.println(accion.toInt());
+
         //Según la acción recogida se realiza las siguietes opciones
-        switch (estado.toInt()){
+        switch (accion.toInt()){
         case 1: // Crear un nueva tarjeta
           //Se tiene que leer el UID y grabar los datos en la tarjeta
-          
+
           //Envía los datos del UID y los datos guardados
-          WIFI.send(datos);
-          
-          //Recivo si los datos que se han guardado están OK
-          if(WIFI.read(NOBLO)>0){
-            //Recogemos datos del servidor
-            for(int j=0; j<33; j++){
-              datos[j] = WIFI.answer[j];
-            }
-          }
-          
-          recividos = datos;
+
+          WIFI.send("{\"estado\":\"OK\"}");
+          WIFI.send("{\"accion\":\"1\",\"dni\":\"77362393f\"}");
+
+          recividos = reciveDatosWifi();
+
+          //recividos = datos;
           //Se recorta el valor del estado
           estado = recividos.substring(recividos.indexOf("{\"estado\":\"")+11,recividos.indexOf("\"}"));
           USB.println((const char*)&estado[0]);
@@ -148,14 +171,15 @@ void loop()
 //Función conexión con AP WIFI
 void wifi_setup()
 {
+  USB.println(F("======================================"));
   // Switch ON the WiFi module on the desired socket
   if( WIFI.ON(socket) == 1 )
   {
-    USB.println(F("Wifi switched ON"));
+    USB.println(F("Wifi ON"));
   }
   else
   {
-    USB.println(F("Wifi did not initialize correctly"));
+    USB.println(F("Wifi no se ha inicializado correctamente"));
   }
 
   // 1. Configure the transport protocol (UDP, TCP, FTP, HTTP...) 
@@ -170,8 +194,33 @@ void wifi_setup()
 
   // 5. Store changes  
   WIFI.storeData();
+  USB.println(F("======================================"));
 
 }
+
+
+//Función inicio módulo RFID
+void rfid_setup(){
+  USB.println(F("======================================"));
+  //Inicia el módulo RFID
+  RFID13.ON(SOCKET0);
+  USB.println("Módulo RFID Iniciado");
+  USB.println(F("======================================")); 
+}
+
+char * reciveDatosWifi(){
+  char datos[32];
+  if(WIFI.read(NOBLO)>0){
+    //Recogemos datos del servidor
+    for(int j=0; j<WIFI.length; j++){
+      datos[j] = WIFI.answer[j];
+      USB.print(datos[j]);
+    }
+  }
+  return datos;
+}
+
+
 
 
 
