@@ -100,11 +100,11 @@ void loop()
 
         //Se recorta el valor de acción
         int inicio = recividos.indexOf("{\"accion\":\"");
-        print("inicio: ");
-        println(inicio);
+        USB.print("inicio: ");
+        USB.println(inicio);
         int fin = recividos.indexOf("\",\"dni\":\"");
-        print("fin: ");
-        println(fin);
+        USB.print("fin: ");
+        USB.println(fin);
         accion = recividos.substring(inicio+11,fin);
         USB.println("ESTADO:");
         USB.println((const char*)&accion[0]);
