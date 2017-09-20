@@ -45,9 +45,10 @@ char AUTHKEY[] = "1234567890";
 /////////////////////////////////
 // WEB server settings
 /////////////////////////////////
-char HOST[] = "192.168.43.187";
-int PORT = 8000;
-char URL[]  = "GET$/rest/";
+char HOST[] = "vps457523.ovh.net";
+int PORT = 80;
+char URL[]  = "GET$ /rest/";
+char mascosas[] = "HTTP/1.1\r\nHost: vps457523.ovh.net\r\naccept: application/json\r\naccept-encoding: gzip, deflate\r\naccept-language: en-US,en;q=0.8\r\nuser-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.91 Safari/537.36\r\n\r\n";
 /////////////////////////////////
 
 void setup()
@@ -155,9 +156,10 @@ void loop()
           //Imprimimos por pantalla los datos recogidos
           USB.print("DNI: ");
           USB.println((const char*)&dni[0]);
+          
 
           //Se monta la cadena Json para la URL
-          sprintf(json, "\{\"id_lector\":\"1\",\"uid\":\"%s\",\"dni\":\"%s\"\}", (const char*)&UID[0], (const char*)&dni[0]);
+          sprintf(json, "\{\"id_lector\":\"1\",\"uid\":\"%s\",\"dni\":\"%s\"\} %s", (const char*)&UID[0], (const char*)&dni[0], (const char*)&mascosas[0]);
 
           //Imprimimos La cadena JSON sin parsear
           USB.print("Cadena sin parsear: ");
@@ -165,7 +167,7 @@ void loop()
 
           //Parseamos la cadena JSON para que no inserte carácteres no permitidos en una URL
           BODY = json;
-          BODY.replace("%", "%25");
+          /*BODY.replace("%", "%25");
           BODY.replace("{", "%7B");
           BODY.replace("}", "%7D");
           BODY.replace("\"", "%22");
@@ -178,7 +180,7 @@ void loop()
           BODY.replace("&", "%26");
           BODY.replace("\\", "%5C");
           BODY.replace("~", "%7E");
-          BODY.replace("#", "%23");
+          BODY.replace("#", "%23");*/
 
           //Imprimimos La cadena JSON parseada
           USB.print("Cadena Parseada: ");
@@ -196,7 +198,8 @@ void loop()
           USB.print(F("body:"));
           USB.println((char*)&BODY[0]);
 
-          state_readURL = WIFI.getURL(IP, HOST , PORT , URL, (char*)&BODY[0]);
+          state_readURL = WIFI.getURL(DNS, HOST , URL, (char*)&BODY[0]);
+          USB.println(state_readURL);
           if ( state_readURL == 1)
           {
             USB.println(F("\nHTTP query OK."));
